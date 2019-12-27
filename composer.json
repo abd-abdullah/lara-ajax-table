@@ -1,0 +1,24 @@
+{
+    "name": "abd/laraajaxtable",
+    "description": "This package is use for datatable ajax serverside with laravel",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Md. Abdullah",
+            "email": "abdullah001rti@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Abd\\LaraAjaxTable\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            //"Laravel\\Tinker\\Tests\\": "tests/"
+        }
+    }
+}
