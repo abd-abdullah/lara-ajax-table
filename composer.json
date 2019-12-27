@@ -15,10 +15,5 @@
         "psr-4": {
             "Abd\\LaraAjaxTable\\": "src/"
         }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            //"Laravel\\Tinker\\Tests\\": "tests/"
-        }
     }
 }
