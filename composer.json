@@ -15,5 +15,12 @@
         "psr-4": {
             "Abd\\LaraAjaxTable\\": "src/"
         }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Abd\\LaraAjaxTable\\LaraAjaxTableServiceProvider"
+            ]
+        }
     }
 }
