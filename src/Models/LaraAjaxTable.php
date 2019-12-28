@@ -2,9 +2,16 @@
 
 namespace Abd\LaraAjaxTable\Models;
 
+use Illuminate\Http\Request;
+
 trait LaraAjaxTable
 {
-    public function DataTableLoader($request){
+    private $searchColumn = [];
+
+    public function DataTableLoader(Request $request)
+    {
+
+        $this->searchColumnFilter($request);
         $limit = 20;
         $offset = 0;
         $search = [];
@@ -20,10 +27,12 @@ trait LaraAjaxTable
         if ($request->input('start')) {
             $offset = $request->input('start');
         }
-
         if ($request->input('search') && $request->input('search')['value'] != "") {
-            $search['name'] = $request->input('search')['value'];
+            foreach ($this->searchColumn as $name) {
+                $search[$name] = $request->input('search')['value'];
+            }
         }
+
 
         if ($request->input('where')) {
             $where = $request->input('where');
@@ -42,6 +51,17 @@ trait LaraAjaxTable
 
         return $this->GetDataForDataTable($limit, $offset, $search, $where, $with, $join, $order_by);
     }
+
+    protected function searchColumnFilter(Request $request)
+    {
+        $requestColumns = $request->input('columns');
+
+        foreach ($requestColumns as $searchColumn) {
+            if ($searchColumn['searchable'] == "false" || $searchColumn['name'] == NULL) continue;
+            $this->searchColumn [] = $searchColumn['name'];
+        }
+    }
+
 
     public function GetDataForDataTable($limit = 20, $offset = 0, $search = [], $where = [], $with = [], $join = [], $order_by = [], $withTrashed = 0, $table_col_name = '')
     {
