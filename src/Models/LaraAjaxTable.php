@@ -6,50 +6,40 @@ use Illuminate\Http\Request;
 
 trait LaraAjaxTable
 {
-    private $searchColumn = [];
+    protected $searchColumn = [];
+    protected $Offset = 0;
+    protected $Limit = 10;
+    public $Join = [];
+    public $Where = [];
+    public $Order = [];
+    public $Search = [];
 
     public function DataTableLoader(Request $request)
     {
 
         $this->searchColumnFilter($request);
-        $limit = 20;
-        $offset = 0;
-        $search = [];
-        $where = [];
-        $with = [];
-        $join = [];
-        $order_by = [];
 
         if ($request->input('length')) {
-            $limit = $request->input('length');
+            $this->Limit = $request->input('length');
         }
 
         if ($request->input('start')) {
-            $offset = $request->input('start');
+            $this->Offset = $request->input('start');
         }
+
         if ($request->input('search') && $request->input('search')['value'] != "") {
             foreach ($this->searchColumn as $name) {
-                $search[$name] = $request->input('search')['value'];
+                $this->Search[$name] = $request->input('search')['value'];
             }
-        }
-
-
-        if ($request->input('where')) {
-            $where = $request->input('where');
         }
 
         if ($request->input('order')[0]['column'] != 0) {
             $column_name = $request->input('columns')[$request->input('order')[0]['column']]['name'];
             $sort = $request->input('order')[0]['dir'];
-            $order_by[$column_name] = $sort;
+            $this->Order[$column_name] = $sort;
         }
 
-        $with = [];
-
-
-        $join = [];
-
-        return $this->GetDataForDataTable($limit, $offset, $search, $where, $with, $join, $order_by);
+        return $this->GetDataForDataTable();
     }
 
     protected function searchColumnFilter(Request $request)
@@ -63,8 +53,15 @@ trait LaraAjaxTable
     }
 
 
-    public function GetDataForDataTable($limit = 20, $offset = 0, $search = [], $where = [], $with = [], $join = [], $order_by = [], $withTrashed = 0, $table_col_name = '')
+    public function GetDataForDataTable()
     {
+        $where = $this->Where;
+        $offset = $this->Offset;
+        $limit = $this->Limit;
+        $join = $this->Join;
+        $search = $this->Search;
+        $order_by = $this->Order;
+
 
         $totalData = $this::query();
         $filterData = $this::query();
@@ -103,33 +100,16 @@ trait LaraAjaxTable
             $totalData->limit($limit)->offset($offset);
         }
 
-        if (count($with) > 0) {
-            foreach ($with as $rel) {
-                $totalData->with($rel);
-                $filterData->with($rel);
-            }
-        }
-
         if (count($join) > 0) {
-            foreach ($join as list($nameJ, $withJ, $asJ)) {
-                $name_array = explode(" ", $nameJ);
+            foreach ($join as $val) {
+                $name_array = explode(" ", $val['table1']);
                 $name_as = end($name_array);
-                if ($name_as == 'rev') {
-                    $totalData->leftJoin($name_array[0], $withJ, '=', $this->getTable() . '.id')
-                        ->selectRaw($asJ);
-                    $filterData->leftJoin($name_array[0], $withJ, '=', $this->getTable() . '.id');
-                    $totalCount->leftJoin($name_array[0], $withJ, '=', $this->getTable() . '.id');
-                } else {
-                    $totalData->leftJoin($nameJ, $withJ, '=', $name_as . '.id')
-                        ->selectRaw($asJ);
-                    $filterData->leftJoin($nameJ, $withJ, '=', $name_as . '.id');
-                    $totalCount->leftJoin($nameJ, $withJ, '=', $name_as . '.id');
-                }
+                $totalData->leftJoin($val['table1'], $name_as . "." . $val['column'], '=', $val['table2'] . '.id');
+                $filterData->leftJoin($val['table1'], $name_as . "." . $val['column'], '=', $val['table2'] . '.id');
+                $totalCount->leftJoin($val['table1'], $name_as . "." . $val['column'], '=', $val['table2'] . '.id');
             }
-
-            $totalData->selectRaw($this->getTable() . '.*');
-            $filterData->selectRaw($this->getTable() . '.*');
         }
+
 
         if (count($search) > 0) {
             $totalData->where(function ($totalData) use ($search) {
@@ -158,15 +138,15 @@ trait LaraAjaxTable
             $totalData->orderBy($this->getTable() . '.id', 'DESC');
         }
 
+        $totalData = $totalData->get();
+        $totalData->transform(function ($item) {
+            $item['Row_Index'] = ++$this->offset;
+            return $item;
+        });
 
-        if ($withTrashed) {
-            $totalData->withTrashed();
-            $filterData->withTrashed();
-            $totalCount->withTrashed();
-        }
 
         return [
-            'data' => $totalData->get(),
+            'data' => $totalData,
             'draw' => 0,
             'recordsTotal' => $totalCount->count(),
             'recordsFiltered' => $filterData->count(),
